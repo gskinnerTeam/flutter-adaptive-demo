@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'widgets/app_title_bar.dart';
+import 'global/targeted_actions.dart';
 
 List<Widget> getMainMenuChildren(BuildContext context) {
   // Define a method to change pages in the AppModel
@@ -39,44 +40,49 @@ class _MainAppScaffoldState extends State<MainAppScaffold> {
   Widget build(BuildContext context) {
     bool useTabs = MediaQuery.of(context).size.width < FormFactor.tablet;
     bool isLoggedOut = context.select((AppModel m) => m.isLoggedIn) == false;
-    return WindowBorder(
-      color: Colors.white,
-      child: Material(
-        child: Column(
-          children: [
-            AppTitleBar(),
-            Expanded(
-              child: isLoggedOut
-                  // If logged out, show just the login page with no menus
-                  ? LoginPage()
-                  // Otherwise, show the full application with dynamic scaffold
-                  : Scaffold(
-                      key: _scaffoldKey,
-                      drawer: useTabs ? _SideMenu(showPageButtons: false) : null,
-                      appBar: useTabs ? AppBar(backgroundColor: Colors.blue.shade300) : null,
-                      body: Stack(children: [
-                        // Vertical layout with Tab controller and drawer
-                        if (useTabs) ...[
-                          Column(
-                            children: [
-                              Expanded(child: _PageStack()),
-                              _TabMenu(),
+    return TargetedActionRoot(
+      child: WindowBorder(
+        color: Colors.white,
+        child: Material(
+          child: Column(
+            children: [
+              AppTitleBar(),
+              Expanded(
+                child: isLoggedOut
+                    // If logged out, show just the login page with no menus
+                    ? LoginPage()
+                    // Otherwise, show the full application with dynamic scaffold
+                    : Focus(
+                      autofocus: true,
+                      child: Scaffold(
+                          key: _scaffoldKey,
+                          drawer: useTabs ? _SideMenu(showPageButtons: false) : null,
+                          appBar: useTabs ? AppBar(backgroundColor: Colors.blue.shade300) : null,
+                          body: Stack(children: [
+                            // Vertical layout with Tab controller and drawer
+                            if (useTabs) ...[
+                              Column(
+                                children: [
+                                  Expanded(child: _PageStack()),
+                                  _TabMenu(),
+                                ],
+                              )
+                            ]
+                            // Horizontal layout with desktop style side menu
+                            else ...[
+                              Row(
+                                children: [
+                                  _SideMenu(),
+                                  Expanded(child: _PageStack()),
+                                ],
+                              ),
                             ],
-                          )
-                        ]
-                        // Horizontal layout with desktop style side menu
-                        else ...[
-                          Row(
-                            children: [
-                              _SideMenu(),
-                              Expanded(child: _PageStack()),
-                            ],
-                          ),
-                        ],
-                      ]),
+                          ]),
+                        ),
                     ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -119,9 +125,7 @@ class _SideMenu extends StatelessWidget {
           // Buttons
           Column(children: [
             SizedBox(height: Insets.extraLarge),
-            if (showPageButtons) ...[
-              ...getMainMenuChildren(context),
-            ],
+            if (showPageButtons)...getMainMenuChildren(context),
             SizedBox(height: Insets.extraLarge),
             SecondaryMenuButton(label: "Submenu Item 1"),
             SecondaryMenuButton(label: "Submenu Item 2"),
