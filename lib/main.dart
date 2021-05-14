@@ -1,19 +1,8 @@
 import 'package:adaptive_app_demos/app_model.dart';
 import 'package:adaptive_app_demos/main_app_scaffold.dart';
-import 'package:adaptive_app_demos/pages/login_page.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-// Show tooltips
-// Show context menu
-// Show view that adapts from fullscreen dialog to modal dialog to side panel
-
-// Show custom title bar
-// Show expanding button with max-width
-// Show view that reflows layout
-// Show tab support
-// Show dynamic menu (tabs + drawer -> drawer
 
 void main() {
   runApp(AppScaffold());

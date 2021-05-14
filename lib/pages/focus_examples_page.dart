@@ -1,3 +1,4 @@
+import 'package:adaptive_app_demos/global/styling.dart';
 import 'package:flextras/flextras.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -6,21 +7,29 @@ import 'package:flutter/services.dart';
 class FocusExamplesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SeparatedColumn(
-        separatorBuilder: () => SizedBox(height: 5),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text("BasicActionDetector:"),
-          BasicActionDetector(),
-          SizedBox(height: 10),
-          Text("AdvancedActionDetector:"),
-          ClickableActionDetector(),
-          SizedBox(height: 10),
-          Text("CustomControl:"),
-          ClickableControl(),
-          _TextListener(),
-        ],
+    return Padding(
+      padding: EdgeInsets.all(Insets.extraLarge),
+      child: Center(
+        child: SeparatedColumn(
+          separatorBuilder: () => SizedBox(height: 5),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Basic widget that can accept traversal, built with FocusableActionDetector
+            Text("BasicActionDetector:"),
+            BasicActionDetector(),
+            SizedBox(height: 10),
+
+            // Clickable widget that can accept traversal, built with FocusableActionDetector
+            Text("AdvancedActionDetector:"),
+            ClickableActionDetector(),
+            SizedBox(height: 10),
+
+            // A totally custom control, built by stacking together various widgets
+            Text("CustomControl:"),
+            ClickableControl(),
+            _TextListener(),
+          ],
+        ),
       ),
     );
   }
@@ -43,7 +52,14 @@ class __TextListenerState extends State<_TextListener> {
         }
         return KeyEventResult.ignored;
       },
-      child: TextButton(child: Text("Dddd"), onPressed: () {}),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 400),
+        child: TextField(
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -69,7 +85,7 @@ class _BasicActionDetectorState extends State<BasicActionDetector> {
         children: [
           FlutterLogo(size: 100),
           // Position focus in the negative margin for a cool effect
-          if (_hasFocus) Positioned(left: -4, top: -4, bottom: -4, right: -4, child: _RoundedBorder())
+          if (_hasFocus) Positioned(left: -4, top: -4, bottom: -4, right: -4, child: _roundedBorder())
         ],
       ),
     );
@@ -161,11 +177,11 @@ class Logo extends StatelessWidget {
         // Content
         FlutterLogo(size: 100),
         // Focus effect:
-        if (showBorder) Positioned(left: 0, top: -4, bottom: -4, right: -4, child: _RoundedBorder())
+        if (showBorder) Positioned(left: 0, top: -4, bottom: -4, right: -4, child: _roundedBorder())
       ],
     );
   }
 }
 
-Widget _RoundedBorder() => Container(
+Widget _roundedBorder() => Container(
     decoration: BoxDecoration(border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(6)));
