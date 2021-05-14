@@ -3,7 +3,7 @@
 Demo code for adaptive app development techniques.
 
 
-Demonstrated in this repo:
+### Demonstrated in this repo:
 * Login view
   * re-flows from vertical to horizontal layout depending on screen size
   * shows how to use horizontal constraints to stop an item from growing excessively large
