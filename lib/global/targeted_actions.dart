@@ -1,167 +1,189 @@
-import 'dart:async';
-
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
-class TargetedActionRoot extends StatefulWidget {
-  TargetedActionRoot({Key? key, required this.child}) : super(key: key);
+/// Provides a top level scope for targeted actions.
+///
+/// Targeted actions are useful for making actions that are bound to children or
+/// siblings of the focused widget available for invocation that wouldn't
+/// normally be visible to a Shortcuts widget ancestor of the focused widget.
+/// TargetedActionScope is used in place or in addition to the Shortcuts widget
+/// that defines the key bindings for a subtree.
+///
+/// To use a targeted action, define this scope with a set of shortcuts that
+/// should be active in this scope. Then, in a child widget of this one, define
+/// a [TargetedActionBinding] with the actions that you wish to execute when the
+/// binding is activated with the intent. If no action is defined for a scope
+/// for that intent, then nothing happens.
+class TargetedActionScope extends StatefulWidget {
+  TargetedActionScope({Key? key, required this.child, required this.shortcuts}) : super(key: key);
 
   final Widget child;
+  final Map<LogicalKeySet, Intent> shortcuts;
 
   @override
-  State<TargetedActionRoot> createState() => _TargetedActionRootState();
+  State<TargetedActionScope> createState() => _TargetedActionScopeState();
 }
 
-class _TargetedActionRootState extends State<TargetedActionRoot> {
+class _TargetedActionScopeState extends State<TargetedActionScope> {
   late _TargetedActionRegistry registry;
-  late final GlobalKey registryKey;
-  Map<ShortcutActivator, Intent> mappedShortcuts = <ShortcutActivator, Intent>{};
+  Map<LogicalKeySet, Intent> mappedShortcuts = <LogicalKeySet, Intent>{};
 
   @override
   void initState() {
     super.initState();
-    registryKey = GlobalKey();
-    registry = _TargetedActionRegistry(registryKey: registryKey);
-    registry.addListener(_registryChanged);
+    registry = _TargetedActionRegistry();
     mappedShortcuts = _buildShortcuts();
   }
 
   @override
-  void dispose() {
-    registry.removeListener(_registryChanged);
-    super.dispose();
-  }
-
-  void _registryChanged() {
-    setState(() {
+  void didUpdateWidget(TargetedActionScope oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.shortcuts != widget.shortcuts) {
       mappedShortcuts = _buildShortcuts();
-    });
+    }
   }
 
-  Map<ShortcutActivator, Intent> _buildShortcuts() {
-    Map<ShortcutActivator, Intent> mapped = <ShortcutActivator, Intent>{};
-    for (final ShortcutActivator activator in registry.shortcuts.keys) {
-      mapped[activator] = _TargetedIntent(registry.registryKey, registry.shortcuts[activator]!);
+  Map<LogicalKeySet, Intent> _buildShortcuts() {
+    Map<LogicalKeySet, Intent> mapped = <LogicalKeySet, Intent>{};
+    for (final LogicalKeySet activator in widget.shortcuts.keys) {
+      mapped[activator] = _TargetedIntent(widget.shortcuts[activator]!);
     }
     return mapped;
   }
 
   @override
   Widget build(BuildContext context) {
-    registry.inBuild = true;
-    Widget result = ChangeNotifierProvider<_TargetedActionRegistry>.value(
+    return Provider<_TargetedActionRegistry>.value(
       value: registry,
       child: Shortcuts(
         shortcuts: mappedShortcuts,
         child: Actions(
           actions: <Type, Action<Intent>>{
-            _TargetedIntent: _TargetedAction(),
+            _TargetedIntent: _TargetedAction(registry),
           },
-          child: KeyedSubtree(
-            key: registryKey,
-            child: widget.child,
-          ),
+          child: widget.child,
         ),
       ),
     );
-    registry.inBuild = false;
-    return result;
   }
 }
 
-class TargetedActionBinding extends StatelessWidget {
-  TargetedActionBinding({Key? key, required this.child, required this.shortcuts, this.actions})
-      : _subtreeKey = GlobalKey(),
-        super(key: key);
+/// A binding for use within a [TargetedActionScope].
+///
+/// Place an instance of this widget as a descendant of a [TargetedActionScope],
+/// and optionally define any actions that should handle the intents with
+/// bindings in the scope. Any actions defined in parents of this widget will
+/// also be in the scope.
+///
+/// If more than one of these exists in the same [TargetedActionScope], then
+/// each of the corresponding contexts will be searched for an action to fulfill
+/// the intent. The first one to be found that fulfills the intent will have its
+/// action invoked. The order duplicate bindings are searched in is stable with
+/// respect to build order, but arbitrary.
+// This is a stateful widget because we need to be able to implement deactivate.
+class TargetedActionBinding extends StatefulWidget {
+  TargetedActionBinding({Key? key, required this.child, this.actions})
+      : super(key: key);
 
   final Widget child;
-  final Map<ShortcutActivator, Intent> shortcuts;
   final Map<Type, Action<Intent>>? actions;
-  final GlobalKey _subtreeKey;
+
+  @override
+  State<TargetedActionBinding> createState() => _TargetedActionBindingState();
+}
+
+class _TargetedActionBindingState extends State<TargetedActionBinding> {
+  final GlobalKey _subtreeKey = GlobalKey(debugLabel: 'Targeted Action Binding');
 
   @override
   Widget build(BuildContext context) {
-    _TargetedActionRegistry registry = Provider.of<_TargetedActionRegistry>(context);
-    registry.addShortcuts(shortcuts);
-    registry.targetKey = _subtreeKey;
-    Widget child = KeyedSubtree(
+    Provider.of<_TargetedActionRegistry>(context).addTarget(_subtreeKey);
+    Widget result = KeyedSubtree(
       key: _subtreeKey,
-      child: this.child,
+      child: this.widget.child,
     );
-    if (actions != null) {
-      child = Actions(actions: actions!, child: child);
+    if (widget.actions != null) {
+      result = Actions(actions: widget.actions!, child: result);
     }
-    return Shortcuts(
-      shortcuts: shortcuts,
-      child: child,
-    );
+    return result;
+  }
+
+  @override
+  void deactivate() {
+    Provider.of<_TargetedActionRegistry>(context, listen: false).targetKeys.remove(_subtreeKey);
+    super.deactivate();
   }
 }
 
-class _TargetedActionRegistry extends ChangeNotifier {
-  _TargetedActionRegistry({GlobalKey? initialKey, required this.registryKey})
-      : _targetKey = initialKey,
-        _shortcuts = <ShortcutActivator, Intent>{};
+// This is a registry that keeps track of the set of targets in the scope, and
+// handles invoking them.
+//
+// It is found through a provider.
+class _TargetedActionRegistry {
+  _TargetedActionRegistry()
+      : targetKeys = <GlobalKey>{};
 
-  GlobalKey? get targetKey => _targetKey;
-  GlobalKey? _targetKey;
-  set targetKey(GlobalKey? value) {
-    if (_targetKey != value) {
-      _targetKey = value;
-      scheduleMicrotask(() => notifyListeners());
-    }
+  Set<GlobalKey> targetKeys;
+
+  // Adds the given target key to the set of keys to check.
+  void addTarget(GlobalKey target) {
+    targetKeys.add(target);
   }
 
-  bool get inBuild => _inBuild;
-  bool _inBuild = false;
-  set inBuild(bool value) {
-    if (_inBuild != value) {
-      _inBuild = value;
-      if (inBuild) {
-        _shortcuts.clear();
-      } else {
-        // Have to do this in a microtask because children can't cause parents
-        // to rebuild during the build. This means causing an extra frame
-        // whenever the root builds.
-        scheduleMicrotask(() => notifyListeners());
+  bool isEnabled(Intent intent) {
+    // Check each of the target keys to see if there's an action registered in
+    // that context for the intent. If so, find out if it is enabled. It is
+    // build-order dependent which action gets invoked if there are two contexts
+    // tha support the action.
+    for (GlobalKey key in targetKeys) {
+      if (key.currentContext != null) {
+        Action? foundAction = Actions.maybeFind<Intent>(key.currentContext!, intent: intent);
+        if (foundAction != null && foundAction.isEnabled(intent)) {
+          return true;
+        }
       }
     }
+    return false;
   }
-
-  Map<ShortcutActivator, Intent> get shortcuts => _shortcuts;
-  Map<ShortcutActivator, Intent> _shortcuts;
-  void addShortcuts(Map<ShortcutActivator, Intent> value) {
-    assert(value.keys.toSet().intersection(_shortcuts.keys.toSet()).isEmpty,
-      'Warning: duplicate key binding for these activators: ${value.keys.toSet().intersection(_shortcuts.keys.toSet())}'
-    );
-    _shortcuts.addAll(value);
-  }
-
-  final GlobalKey registryKey;
 
   Object? invoke(Intent intent) {
-    if (targetKey != null && targetKey!.currentContext != null) {
-      return Actions.invoke(targetKey!.currentContext!, intent);
+    // Check each of the target keys to see if there's an action registered in
+    // that context for the intent. If so, execute it and return the result. It
+    // is build-order dependent which action gets invoked if there are two
+    // contexts tha support the action.
+    for (GlobalKey key in targetKeys) {
+      if (key.currentContext != null) {
+        if (Actions.maybeFind<Intent>(key.currentContext!, intent: intent) != null) {
+          return Actions.invoke(key.currentContext!, intent);
+        }
+      }
     }
     return null;
   }
 }
 
+// A wrapper intent class so that it can hold the "real" intent, and serve as a
+// mapping type for the _TargetedAction.
 class _TargetedIntent extends Intent {
-  const _TargetedIntent(this.registryKey, this.intent);
+  const _TargetedIntent(this.intent);
 
-  final GlobalKey registryKey;
   final Intent intent;
 }
 
+// A special action class that invokes the intent tunneled into it via the
+// _TargetedIntent.
 class _TargetedAction extends Action<_TargetedIntent> {
-  _TargetedAction();
+  _TargetedAction(this.registry);
+
+  final _TargetedActionRegistry registry;
+
+  @override
+  bool isEnabled(_TargetedIntent intent) {
+    return registry.isEnabled(intent.intent);
+  }
 
   @override
   Object? invoke(covariant _TargetedIntent intent) {
-    if (intent.registryKey.currentContext != null) {
-      Provider.of<_TargetedActionRegistry>(intent.registryKey.currentContext!, listen: false)
-          .invoke(intent.intent);
-    }
+    registry.invoke(intent.intent);
   }
 }

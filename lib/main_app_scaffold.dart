@@ -10,6 +10,7 @@ import 'package:adaptive_app_demos/widgets/buttons.dart';
 import 'package:adaptive_app_demos/widgets/ok_cancel_dialog.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'widgets/app_title_bar.dart';
@@ -40,7 +41,12 @@ class _MainAppScaffoldState extends State<MainAppScaffold> {
   Widget build(BuildContext context) {
     bool useTabs = MediaQuery.of(context).size.width < FormFactor.tablet;
     bool isLoggedOut = context.select((AppModel m) => m.isLoggedIn) == false;
-    return TargetedActionRoot(
+    return TargetedActionScope(
+      shortcuts: <LogicalKeySet, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.keyA, LogicalKeyboardKey.control): SelectAllIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyS, LogicalKeyboardKey.control): SelectNoneIntent(),
+        LogicalKeySet(LogicalKeyboardKey.delete): DeleteIntent(),
+      },
       child: WindowBorder(
         color: Colors.white,
         child: Material(

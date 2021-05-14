@@ -5,7 +5,6 @@ import 'package:adaptive_app_demos/global/styling.dart';
 import 'package:adaptive_app_demos/global/targeted_actions.dart';
 import 'package:adaptive_app_demos/widgets/buttons.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class AdaptiveGridPage extends StatefulWidget {
   @override
@@ -24,13 +23,7 @@ class _AdaptiveGridPageState extends State<AdaptiveGridPage> {
     Widget buildGridItem(int index) =>
         _GridItem(index, isSelected: _selectedItems.contains(index), onPressed: _handleItemPressed);
     List<Widget> listChildren = _listItems.map(buildGridItem).toList();
-    print("build");
     return TargetedActionBinding(
-      shortcuts: <ShortcutActivator, Intent>{
-        LogicalKeySet(LogicalKeyboardKey.keyA, LogicalKeyboardKey.control): SelectAllIntent(),
-        LogicalKeySet(LogicalKeyboardKey.keyL, LogicalKeyboardKey.control): SelectNoneIntent(),
-        LogicalKeySet(LogicalKeyboardKey.delete): DeleteIntent(),
-      },
       actions: {
         SelectAllIntent: CallbackAction(onInvoke: (Intent intent) => this._handleSelectAllPressed()),
         SelectNoneIntent: CallbackAction(onInvoke: (Intent intent) => this._handleSelectNonePressed()),
