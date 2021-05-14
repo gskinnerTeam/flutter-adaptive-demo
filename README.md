@@ -14,9 +14,9 @@ Demo code for adaptive app development techniques.
   * VisualDensity is controlled with a button inside the title bar, and changes density across the entire app
   * VisualDensity button is right-aligned on macOS to not conflict with native window controls
 * AdaptiveGrid uses LayoutBuilder to create a responsive grid,
-//TODO: /// * shows cross platform multi-select behavior
-//TODO: /// * shows popups and right-click menu to delete
-//TODO: /// * shows select all and delete behavior
+  * //TODO: shows cross platform multi-select behavior
+  * //TODO: shows popups and right-click menu to delete
+  * //TODO: shows select all and delete behavior
 * AdaptiveDataTable uses LayoutBuilder to add/remove columns in a table, depending on space available
 * AdaptiveReflow uses LayoutBuilder to reflow between 3 different layout types: Vertical, Horizontal and Mixed.
 * FocusExamples show various examples of how you can control focusable widgets and listen for key events
