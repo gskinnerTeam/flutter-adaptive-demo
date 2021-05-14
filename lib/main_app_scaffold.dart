@@ -88,7 +88,7 @@ class _PageStack extends StatelessWidget {
   Widget build(BuildContext context) {
     int index = context.select((AppModel model) => model.selectedIndex);
     Widget? page;
-    if (index == 0) page = AdaptiveDataTablePage();
+    if (index == 0) page = AdaptiveGridPage();
     if (index == 1) page = AdaptiveDataTablePage();
     if (index == 2) page = AdaptiveReflowPage();
     if (index == 3) page = FocusExamplesPage();
