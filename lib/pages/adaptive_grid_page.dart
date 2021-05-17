@@ -2,9 +2,9 @@ import 'dart:math';
 
 import 'package:adaptive_app_demos/global/device_type.dart';
 import 'package:adaptive_app_demos/global/styling.dart';
+import 'package:adaptive_app_demos/global/targeted_actions.dart';
 import 'package:adaptive_app_demos/widgets/buttons.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class AdaptiveGridPage extends StatefulWidget {
   @override
@@ -23,46 +23,39 @@ class _AdaptiveGridPageState extends State<AdaptiveGridPage> {
     Widget buildGridItem(int index) =>
         _GridItem(index, isSelected: _selectedItems.contains(index), onPressed: _handleItemPressed);
     List<Widget> listChildren = _listItems.map(buildGridItem).toList();
-    return Shortcuts(
-      shortcuts: <ShortcutActivator, Intent>{
-        LogicalKeySet(LogicalKeyboardKey.keyA, LogicalKeyboardKey.control): SelectAllIntent(),
-        LogicalKeySet(LogicalKeyboardKey.delete): DeleteIntent(),
+    return TargetedActionBinding(
+      actions: {
+        SelectAllIntent: CallbackAction(onInvoke: (Intent intent) => this._handleSelectAllPressed()),
+        SelectNoneIntent: CallbackAction(onInvoke: (Intent intent) => this._handleSelectNonePressed()),
+        DeleteIntent: CallbackAction(onInvoke: (Intent intent) => this._handleDeleteSelectedPressed()),
       },
-      child: Actions(
-        actions: {
-          SelectAllIntent: SelectAllAction(this._handleSelectAllPressed),
-          DeleteIntent: DeleteAction(this._handleDeleteSelectedPressed),
-        },
-        child: Focus(
-          child: Column(
+      child: Column(
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  StyledTextButton(onPressed: _handleSelectAllPressed, child: Text("Select All")),
-                  StyledTextButton(onPressed: _handleSelectNonePressed, child: Text("Select None")),
-                ],
-              ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) {
-                    // Calculate how many columns we want depending on available space
-                    int colCount = max(1, (constraints.maxWidth / 250).floor());
-                    return Scrollbar(
-                      isAlwaysShown: DeviceType.isDesktop,
-                      controller: _scrollController,
-                      child: GridView.count(
-                          controller: _scrollController,
-                          padding: EdgeInsets.all(Insets.extraLarge),
-                          childAspectRatio: 1,
-                          crossAxisCount: colCount,
-                          children: listChildren),
-                    );
-                  },
-                ),
-              ),
+              StyledTextButton(onPressed: _handleSelectAllPressed, child: Text("Select All")),
+              StyledTextButton(onPressed: _handleSelectNonePressed, child: Text("Select None")),
             ],
           ),
-        ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                // Calculate how many columns we want depending on available space
+                int colCount = max(1, (constraints.maxWidth / 250).floor());
+                return Scrollbar(
+                  isAlwaysShown: DeviceType.isDesktop,
+                  controller: _scrollController,
+                  child: GridView.count(
+                      controller: _scrollController,
+                      padding: EdgeInsets.all(Insets.extraLarge),
+                      childAspectRatio: 1,
+                      crossAxisCount: colCount,
+                      children: listChildren),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -113,23 +106,9 @@ class _GridItem extends StatelessWidget {
   }
 }
 
-/// Actions and Intents to support keyboard shortcuts
+/// Intents to support keyboard shortcuts
 class DeleteIntent extends Intent {}
-
-class DeleteAction extends Action<DeleteIntent> {
-  DeleteAction(this.action);
-  final VoidCallback action;
-
-  @override
-  void invoke(covariant DeleteIntent intent) => action.call();
-}
 
 class SelectAllIntent extends Intent {}
 
-class SelectAllAction extends Action<SelectAllIntent> {
-  SelectAllAction(this.action);
-  final VoidCallback action;
-
-  @override
-  void invoke(covariant SelectAllIntent intent) => action.call();
-}
+class SelectNoneIntent extends Intent {}
