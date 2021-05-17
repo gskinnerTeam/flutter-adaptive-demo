@@ -8,8 +8,8 @@ Demo code for adaptive app development techniques.
   * re-flows from vertical to horizontal layout depending on screen size
   * shows how to use horizontal constraints to stop an item from growing excessively large
 * Main App Scaffold
-  * A responsive scaffold that changes from tab bar + drawer, to a combined side-menu for larger screens
-  * Children are shared between widgets showing how you can reuse the same widget in multiple places
+  * a responsive scaffold that changes from tab bar + drawer, to a combined side-menu for larger screens
+  * children are shared between widgets showing how you can reuse the same widget in multiple places
 * A custom title bar is implemented for all platforms using a single widget
   * VisualDensity is controlled with a button inside the title bar, and changes density across the entire app
   * VisualDensity button is right-aligned on macOS to not conflict with native window controls
